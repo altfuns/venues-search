@@ -1,7 +1,5 @@
 package com.altfuns.android.venuessearch;
 
-import java.sql.SQLException;
-
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
@@ -13,8 +11,6 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.widget.SearchView;
 
-import com.altfuns.android.venuessearch.bo.Venue;
-import com.altfuns.android.venuessearch.core.DatabaseHelper;
 import com.altfuns.android.venuessearch.core.LogIt;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesClient.ConnectionCallbacks;
@@ -22,8 +18,6 @@ import com.google.android.gms.common.GooglePlayServicesClient.OnConnectionFailed
 import com.google.android.gms.location.LocationClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
-import com.j256.ormlite.android.apptools.OpenHelperManager;
-import com.j256.ormlite.dao.Dao;
 
 /**
  * An activity representing a list of Venues. This activity has different
@@ -60,8 +54,6 @@ public class VenueListActivity extends FragmentActivity implements
     private LocationClient locationClient;
 
     private Location location;
-    
-    private DatabaseHelper databaseHelper = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,14 +71,6 @@ public class VenueListActivity extends FragmentActivity implements
             // 'activated' state when touched.
             ((VenueListFragment) getSupportFragmentManager().findFragmentById(
                     R.id.venue_list)).setActivateOnItemClick(true);
-        }
-
-        try {
-            Dao<Venue, Long> dao = getHelper().getDao();
-            dao.create(new Venue());
-        } catch (SQLException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
         }
     }
 
@@ -176,23 +160,6 @@ public class VenueListActivity extends FragmentActivity implements
         if (locationClient != null) {
             locationClient.disconnect();
         }
-    }
-    
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (databaseHelper != null) {
-            OpenHelperManager.releaseHelper();
-            databaseHelper = null;
-        }
-    }
-
-    private DatabaseHelper getHelper() {
-        if (databaseHelper == null) {
-            databaseHelper =
-                OpenHelperManager.getHelper(this, DatabaseHelper.class);
-        }
-        return databaseHelper;
     }
 
     @Override

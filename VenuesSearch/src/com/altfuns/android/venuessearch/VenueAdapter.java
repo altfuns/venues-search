@@ -44,11 +44,15 @@ public class VenueAdapter extends ListBaseAdapter<Venue> {
         ViewHolder holder = (ViewHolder) viewHolder;
 
         holder.name.setText(item.getName());
-        double distance = item.getLocation().getDistance() < 1000 ? item
-                .getLocation().getDistance()
-                : item.getLocation().getDistance() / 1000;
-        String measure = item.getLocation().getDistance() < 1000 ? "m" : "km";
-        holder.distance.setText(String.format("%s %s", distance, measure));
+
+        if (item.getLocation() != null) {
+            double distance = item.getLocation().getDistance() < 1000 ? item
+                    .getLocation().getDistance() : item.getLocation()
+                    .getDistance() / 1000;
+            String measure = item.getLocation().getDistance() < 1000 ? "m"
+                    : "km";
+            holder.distance.setText(String.format("%s %s", distance, measure));
+        }
 
     }
 

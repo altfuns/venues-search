@@ -1,6 +1,8 @@
 package com.altfuns.android.venuessearch;
 
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.List;
 
 import android.app.Activity;
 import android.location.Location;
@@ -10,12 +12,14 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.ListView;
 
+import com.altfuns.android.venuessearch.bo.Venue;
 import com.altfuns.android.venuessearch.bo.VenueSearchResult;
 import com.altfuns.android.venuessearch.core.BackgroundTask;
 import com.altfuns.android.venuessearch.core.JsonUtil;
 import com.altfuns.android.venuessearch.core.LogIt;
 import com.altfuns.android.venuessearch.core.RestClientHelper;
 import com.altfuns.android.venuessearch.dummy.DummyContent;
+import com.j256.ormlite.dao.Dao;
 
 /**
  * A list fragment representing a list of Venues. This fragment also supports
@@ -131,6 +135,7 @@ public class VenueListFragment extends ListFragment {
      */
     public void loadVenues(final String query) {
         if (TextUtils.isEmpty(query)) {
+            loadVenuesFromDatabase();
             return;
         }
 
@@ -149,6 +154,7 @@ public class VenueListFragment extends ListFragment {
                             .get(buildVenueSearchQuery());
                     queryResult = JsonUtil.fromJson(VenueSearchResult.class,
                             response);
+                    saveVenues(queryResult.getVenues());
                     LogIt.d(this, response);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -259,5 +265,37 @@ public class VenueListFragment extends ListFragment {
                 getString(R.string.foursquare_client_id),
                 getString(R.string.foursquare_client_secret),
                 location.getLatitude(), location.getLongitude(), query);
+    }
+
+    /**
+     * Save the venues into the local database
+     * @param venues
+     */
+    private void saveVenues(List<Venue> venues) {
+        try {
+            Dao<Venue, Long> dao = VenuesSearchApp.getInstance().getHelper()
+                    .getDao();
+            for (Venue venue : venues) {
+                int id = dao.create(venue);
+                LogIt.d(this, "id:" + id);
+            }
+        } catch (SQLException e) {
+            LogIt.e(this, e, e.getMessage());
+        }
+    }
+
+    /**
+     * Load all the venues from the local database
+     */
+    private void loadVenuesFromDatabase() {
+        try {
+            Dao<Venue, Long> dao = VenuesSearchApp.getInstance().getHelper()
+                    .getDao();
+            List<Venue> venues = dao.queryForAll();
+            adapter.updateItems(venues);
+            setListShown(true);
+        } catch (SQLException e) {
+            LogIt.e(this, e, e.getMessage());
+        }
     }
 }

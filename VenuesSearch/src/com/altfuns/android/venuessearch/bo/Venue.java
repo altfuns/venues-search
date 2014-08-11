@@ -13,8 +13,9 @@ public class Venue {
     @DatabaseField(index = true)
     protected String id;
 
+    @DatabaseField
     protected String name;
-
+    
     protected VenueLocation location;
 
     /**
