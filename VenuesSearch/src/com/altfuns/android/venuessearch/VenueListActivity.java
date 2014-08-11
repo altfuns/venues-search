@@ -1,22 +1,16 @@
 package com.altfuns.android.venuessearch;
 
-import java.io.IOException;
-
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentTransaction;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.widget.SearchView;
 
-import com.altfuns.android.venuessearch.bo.Venue;
-import com.altfuns.android.venuessearch.bo.VenueSearchResult;
-import com.altfuns.android.venuessearch.core.BackgroundTask;
-import com.altfuns.android.venuessearch.core.JsonUtil;
 import com.altfuns.android.venuessearch.core.LogIt;
-import com.altfuns.android.venuessearch.core.RestClientHelper;
 
 /**
  * An activity representing a list of Venues. This activity has different
@@ -82,43 +76,23 @@ public class VenueListActivity extends FragmentActivity implements
         return true;
     }
 
-    public void loadVenues(final String query) {
-        new BackgroundTask() {
-
-            @Override
-            public void work() {
-                try {
-                    String response = RestClientHelper
-                            .get("https://api.foursquare.com/v2/venues/search?client_id=L4QT3R4MUN1PS1VRAZVXV2I0XDCI2QYNLXFDXJJIV4XVMZ50&client_secret=V0FYNJNTEUHEOOSYRZYUOTIQSWJACXGBHXRO1VW0LVHINI05&v=201400810&ll=10.0089857,-84.1370408&query="
-                                    + query);
-                    VenueSearchResult result = JsonUtil.fromJson(
-                            VenueSearchResult.class, response);
-                    for (Venue venue : result.getVenues()) {
-                        LogIt.d(this, venue.toString());
-                    }
-                    LogIt.d(this, result);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            }
-
-            @Override
-            public void done() {
-                // TODO Auto-generated method stub
-
-            }
-        };
-    }
 
     private void handleIntent(Intent intent) {
 
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
-            //use the query to search your data somehow
             LogIt.d(this, "Search key:" + query);
-            loadVenues(query);
+            // Replace the list fragment with a new fragment with query parameter
+            replaceListFragment(query);
         }
+    }
+    
+    private void replaceListFragment(String query){
+        VenueListFragment fragment = VenueListFragment.newInstance(query);
+        FragmentTransaction tr = getSupportFragmentManager().beginTransaction();
+        tr.replace(R.id.venue_list, fragment);
+        tr.addToBackStack(null);
+        tr.commit();
     }
 
     /**
