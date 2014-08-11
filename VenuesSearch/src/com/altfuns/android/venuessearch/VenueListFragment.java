@@ -3,6 +3,7 @@ package com.altfuns.android.venuessearch;
 import java.io.IOException;
 
 import android.app.Activity;
+import android.location.Location;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.text.TextUtils;
@@ -49,6 +50,11 @@ public class VenueListFragment extends ListFragment {
      */
     private String query;
 
+    /**
+     * Current location of the user to filter the venues query
+     */
+    private Location location;
+
     private VenueAdapter adapter;
 
     /**
@@ -78,9 +84,10 @@ public class VenueListFragment extends ListFragment {
      * @param query
      * @return
      */
-    public static VenueListFragment newInstance(String query) {
+    public static VenueListFragment newInstance(String query, Location location) {
         VenueListFragment result = new VenueListFragment();
         result.setQuery(query);
+        result.setLocation(location);
         return result;
     }
 
@@ -97,6 +104,20 @@ public class VenueListFragment extends ListFragment {
 
     public void setQuery(String query) {
         this.query = query;
+    }
+
+    /**
+     * @return the location
+     */
+    public Location getLocation() {
+        return location;
+    }
+
+    /**
+     * @param location the location to set
+     */
+    public void setLocation(Location location) {
+        this.location = location;
     }
 
     @Override
@@ -120,9 +141,12 @@ public class VenueListFragment extends ListFragment {
             @Override
             public void work() {
                 try {
+                    if (location == null) {
+                        fail(getString(R.string.acquiring_current_position));
+                        return;
+                    }
                     String response = RestClientHelper
-                            .get("https://api.foursquare.com/v2/venues/search?client_id=L4QT3R4MUN1PS1VRAZVXV2I0XDCI2QYNLXFDXJJIV4XVMZ50&client_secret=V0FYNJNTEUHEOOSYRZYUOTIQSWJACXGBHXRO1VW0LVHINI05&v=201400810&ll=10.0089857,-84.1370408&query="
-                                    + query);
+                            .get(buildVenueSearchQuery());
                     queryResult = JsonUtil.fromJson(VenueSearchResult.class,
                             response);
                     LogIt.d(this, response);
@@ -134,6 +158,10 @@ public class VenueListFragment extends ListFragment {
 
             @Override
             public void done() {
+                if (failed()) {
+                    setEmptyText(getExceptionMessage());
+                    return;
+                }
                 adapter.updateItems(queryResult.getVenues());
                 setListShown(true);
 
@@ -220,5 +248,16 @@ public class VenueListFragment extends ListFragment {
         }
 
         mActivatedPosition = position;
+    }
+
+    /**
+     * Builds the venue search query string with the foursquare OAuth parameters, user location and the query term
+     * @return
+     */
+    private String buildVenueSearchQuery() {
+        return String.format(getString(R.string.foursquare_venues_search),
+                getString(R.string.foursquare_client_id),
+                getString(R.string.foursquare_client_secret),
+                location.getLatitude(), location.getLongitude(), query);
     }
 }

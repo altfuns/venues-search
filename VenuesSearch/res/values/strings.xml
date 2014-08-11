@@ -6,5 +6,9 @@
     <string name="search_title">Search</string>
     <string name="search_hint">Search venue</string>
     <string name="venues_not_found_message">No venues were found</string>
+    <string name="acquiring_current_position">Acquiring current position</string>
+    <string name="foursquare_client_id">L4QT3R4MUN1PS1VRAZVXV2I0XDCI2QYNLXFDXJJIV4XVMZ50</string>
+    <string name="foursquare_client_secret">V0FYNJNTEUHEOOSYRZYUOTIQSWJACXGBHXRO1VW0LVHINI05</string>
+    <string name="foursquare_venues_search">https://api.foursquare.com/v2/venues/search?client_id=%1$s&amp;client_secret=%2$s&amp;v=201400810&amp;ll=%3$s,%4$s&amp;query=%5$s</string>
 
 </resources>

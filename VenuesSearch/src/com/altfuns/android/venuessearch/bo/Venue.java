@@ -1,33 +1,48 @@
 package com.altfuns.android.venuessearch.bo;
 
 import com.google.gson.annotations.SerializedName;
+import com.j256.ormlite.field.DatabaseField;
 
 public class Venue {
 
     @SerializedName("_id")
-    protected long id;
+    @DatabaseField(generatedId = true)
+    protected long _id;
 
     @SerializedName("id")
-    protected String _id;
+    @DatabaseField(index = true)
+    protected String id;
 
     protected String name;
 
     protected VenueLocation location;
 
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public String get_id() {
+    /**
+     * @return the _id
+     */
+    public long get_id() {
         return _id;
     }
 
-    public void set_id(String _id) {
+    /**
+     * @param _id the _id to set
+     */
+    public void set_id(long _id) {
         this._id = _id;
+    }
+
+    /**
+     * @return the id
+     */
+    public String getId() {
+        return id;
+    }
+
+    /**
+     * @param id the id to set
+     */
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getName() {

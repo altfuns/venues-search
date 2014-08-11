@@ -1,8 +1,11 @@
 package com.altfuns.android.venuessearch;
 
+import java.sql.SQLException;
+
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Location;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
@@ -10,7 +13,17 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.widget.SearchView;
 
+import com.altfuns.android.venuessearch.bo.Venue;
+import com.altfuns.android.venuessearch.core.DatabaseHelper;
 import com.altfuns.android.venuessearch.core.LogIt;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesClient.ConnectionCallbacks;
+import com.google.android.gms.common.GooglePlayServicesClient.OnConnectionFailedListener;
+import com.google.android.gms.location.LocationClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.j256.ormlite.android.apptools.OpenHelperManager;
+import com.j256.ormlite.dao.Dao;
 
 /**
  * An activity representing a list of Venues. This activity has different
@@ -28,13 +41,27 @@ import com.altfuns.android.venuessearch.core.LogIt;
  * {@link VenueListFragment.Callbacks} interface to listen for item selections.
  */
 public class VenueListActivity extends FragmentActivity implements
-        VenueListFragment.Callbacks {
+        VenueListFragment.Callbacks, ConnectionCallbacks, LocationListener,
+        OnConnectionFailedListener {
 
     /**
      * Whether or not the activity is in two-pane mode, i.e. running on a tablet
      * device.
      */
     private boolean mTwoPane;
+
+    //These settings are the same as the settings for the map. They will in fact give you updates at
+    // the maximal rates currently possible.
+    private static final LocationRequest REQUEST = LocationRequest.create()
+            .setInterval(5000) // 5 seconds
+            .setFastestInterval(16) // 16ms = 60fps
+            .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+    private LocationClient locationClient;
+
+    private Location location;
+    
+    private DatabaseHelper databaseHelper = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,7 +81,13 @@ public class VenueListActivity extends FragmentActivity implements
                     R.id.venue_list)).setActivateOnItemClick(true);
         }
 
-        // TODO: If exposing deep links into your app, handle intents here.
+        try {
+            Dao<Venue, Long> dao = getHelper().getDao();
+            dao.create(new Venue());
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -76,7 +109,6 @@ public class VenueListActivity extends FragmentActivity implements
         return true;
     }
 
-
     private void handleIntent(Intent intent) {
 
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
@@ -86,13 +118,23 @@ public class VenueListActivity extends FragmentActivity implements
             replaceListFragment(query);
         }
     }
-    
-    private void replaceListFragment(String query){
-        VenueListFragment fragment = VenueListFragment.newInstance(query);
+
+    private void replaceListFragment(String query) {
+        VenueListFragment fragment = VenueListFragment.newInstance(query,
+                this.location);
         FragmentTransaction tr = getSupportFragmentManager().beginTransaction();
         tr.replace(R.id.venue_list, fragment);
         tr.addToBackStack(null);
         tr.commit();
+    }
+
+    /**
+     * Get the last location from the location client
+     * @return
+     */
+    private Location getLocation() {
+        return locationClient != null && locationClient.isConnected() ? locationClient
+                .getLastLocation() : null;
     }
 
     /**
@@ -120,4 +162,71 @@ public class VenueListActivity extends FragmentActivity implements
             startActivity(detailIntent);
         }
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        setUpLocationClientIfNeeded();
+        locationClient.connect();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (locationClient != null) {
+            locationClient.disconnect();
+        }
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (databaseHelper != null) {
+            OpenHelperManager.releaseHelper();
+            databaseHelper = null;
+        }
+    }
+
+    private DatabaseHelper getHelper() {
+        if (databaseHelper == null) {
+            databaseHelper =
+                OpenHelperManager.getHelper(this, DatabaseHelper.class);
+        }
+        return databaseHelper;
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult arg0) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        this.location = location;
+
+    }
+
+    @Override
+    public void onConnected(Bundle arg0) {
+        locationClient.requestLocationUpdates(REQUEST, this); // LocationListener
+        location = getLocation();
+    }
+
+    @Override
+    public void onDisconnected() {
+        // TODO Auto-generated method stub
+
+    }
+
+    /**
+     * Set up the location client if the instance is null.
+     */
+    private void setUpLocationClientIfNeeded() {
+        if (locationClient == null) {
+            locationClient = new LocationClient(this, this, // ConnectionCallbacks
+                    this); // OnConnectionFailedListener
+        }
+    }
+
 }

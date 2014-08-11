@@ -18,7 +18,7 @@ public class VenueAdapter extends ListBaseAdapter<Venue> {
     @Override
     public long getItemId(int position) {
         if (this.items != null && this.items.size() > position) {
-            return this.items.get(position).getId();
+            return this.items.get(position).get_id();
         }
         return -1;
     }
