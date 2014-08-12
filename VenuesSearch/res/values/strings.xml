@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">VenuesSearch</string>
+    <string name="app_name">Venues Search</string>
     <string name="title_venue_detail">Venue Detail</string>
     <string name="search_title">Search</string>
     <string name="search_hint">Search venue</string>

@@ -19,6 +19,12 @@ public class Venue {
     @DatabaseField
     protected Integer distance = null;
 
+    @DatabaseField
+    protected Double lat;
+
+    @DatabaseField
+    protected Double lng;
+
     protected VenueLocation location;
 
     /**
@@ -58,6 +64,12 @@ public class Venue {
     }
 
     public VenueLocation getLocation() {
+        if (location == null && lat != null && lng != null) {
+            location = new VenueLocation();
+            location.setDistance(distance);
+            location.setLat(lat);
+            location.setLng(lng);
+        }
         return location;
     }
 

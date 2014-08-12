@@ -1,16 +1,25 @@
 package com.altfuns.android.venuessearch;
 
+import java.io.IOException;
+import java.util.List;
+
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentTransaction;
+import android.support.v4.view.ViewPager;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.Window;
 import android.widget.SearchView;
 
+import com.altfuns.android.venuessearch.bo.Venue;
+import com.altfuns.android.venuessearch.bo.VenueSearchResult;
+import com.altfuns.android.venuessearch.core.BackgroundTask;
 import com.altfuns.android.venuessearch.core.LogIt;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesClient.ConnectionCallbacks;
@@ -20,29 +29,13 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 
 /**
- * An activity representing a list of Venues. This activity has different
- * presentations for handset and tablet-size devices. On handsets, the activity
- * presents a list of items, which when touched, lead to a
- * {@link VenueDetailActivity} representing item details. On tablets, the
- * activity presents the list of items and item details side-by-side using two
- * vertical panes.
- * <p>
- * The activity makes heavy use of fragments. The list of items is a
- * {@link VenueListFragment} and the item details (if present) is a
- * {@link VenueDetailFragment}.
- * <p>
- * This activity also implements the required
- * {@link VenueListFragment.Callbacks} interface to listen for item selections.
+ * An activity representing a list of Venues. This activity has two tabs, 
+ * one for the list of venues searched and the other one for view the venues of the map.
+ * This activity also request the current location to filter the search results and get the distance between
+ * the venue and the user.
  */
 public class VenueListActivity extends FragmentActivity implements
-        VenueListFragment.Callbacks, ConnectionCallbacks, LocationListener,
-        OnConnectionFailedListener {
-
-    /**
-     * Whether or not the activity is in two-pane mode, i.e. running on a tablet
-     * device.
-     */
-    private boolean mTwoPane;
+        ConnectionCallbacks, LocationListener, OnConnectionFailedListener {
 
     //These settings are the same as the settings for the map. They will in fact give you updates at
     // the maximal rates currently possible.
@@ -51,6 +44,10 @@ public class VenueListActivity extends FragmentActivity implements
             .setFastestInterval(16) // 16ms = 60fps
             .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
+    private VenuePagerAdapter pagerAdapter;
+
+    private ViewPager viewPager;
+
     private LocationClient locationClient;
 
     private Location location;
@@ -58,20 +55,14 @@ public class VenueListActivity extends FragmentActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
         setContentView(R.layout.activity_venue_list);
 
-        if (findViewById(R.id.venue_detail_container) != null) {
-            // The detail container view will be present only in the
-            // large-screen layouts (res/values-large and
-            // res/values-sw600dp). If this view is present, then the
-            // activity should be in two-pane mode.
-            mTwoPane = true;
-
-            // In two-pane mode, list items should be given the
-            // 'activated' state when touched.
-            ((VenueListFragment) getSupportFragmentManager().findFragmentById(
-                    R.id.venue_list)).setActivateOnItemClick(true);
-        }
+        // ViewPager and its adapters use support library
+        // fragments, so use getSupportFragmentManager.
+        pagerAdapter = new VenuePagerAdapter(getSupportFragmentManager());
+        viewPager = (ViewPager) findViewById(R.id.pager);
+        viewPager.setAdapter(pagerAdapter);
     }
 
     @Override
@@ -93,65 +84,16 @@ public class VenueListActivity extends FragmentActivity implements
         return true;
     }
 
-    private void handleIntent(Intent intent) {
-
-        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
-            String query = intent.getStringExtra(SearchManager.QUERY);
-            LogIt.d(this, "Search key:" + query);
-            // Replace the list fragment with a new fragment with query parameter
-            replaceListFragment(query);
-        }
-    }
-
-    private void replaceListFragment(String query) {
-        VenueListFragment fragment = VenueListFragment.newInstance(query,
-                this.location);
-        FragmentTransaction tr = getSupportFragmentManager().beginTransaction();
-        tr.replace(R.id.venue_list, fragment);
-        tr.addToBackStack(null);
-        tr.commit();
-    }
-
-    /**
-     * Get the last location from the location client
-     * @return
-     */
-    private Location getLocation() {
-        return locationClient != null && locationClient.isConnected() ? locationClient
-                .getLastLocation() : null;
-    }
-
-    /**
-     * Callback method from {@link VenueListFragment.Callbacks} indicating that
-     * the item with the given ID was selected.
-     */
-    @Override
-    public void onItemSelected(String id) {
-        if (mTwoPane) {
-            // In two-pane mode, show the detail view in this activity by
-            // adding or replacing the detail fragment using a
-            // fragment transaction.
-            Bundle arguments = new Bundle();
-            arguments.putString(VenueDetailFragment.ARG_ITEM_ID, id);
-            VenueDetailFragment fragment = new VenueDetailFragment();
-            fragment.setArguments(arguments);
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.venue_detail_container, fragment).commit();
-
-        } else {
-            // In single-pane mode, simply start the detail activity
-            // for the selected item ID.
-            Intent detailIntent = new Intent(this, VenueDetailActivity.class);
-            detailIntent.putExtra(VenueDetailFragment.ARG_ITEM_ID, id);
-            startActivity(detailIntent);
-        }
-    }
-
     @Override
     public void onResume() {
         super.onResume();
         setUpLocationClientIfNeeded();
         locationClient.connect();
+
+        // When it's offline load the latest search results
+        if (!isOnline()) {
+            loadLatestSearch();
+        }
     }
 
     @Override
@@ -172,6 +114,9 @@ public class VenueListActivity extends FragmentActivity implements
     public void onLocationChanged(Location location) {
         this.location = location;
 
+        if (pagerAdapter != null) {
+            pagerAdapter.updateLocation(location);
+        }
     }
 
     @Override
@@ -187,6 +132,29 @@ public class VenueListActivity extends FragmentActivity implements
     }
 
     /**
+     * Handles the search intent
+     * @param intent
+     */
+    private void handleIntent(Intent intent) {
+
+        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            String query = intent.getStringExtra(SearchManager.QUERY);
+            LogIt.d(this, "Search key:" + query);
+            // Search for venues and load it into the fragments
+            searchVenues(location, query);
+        }
+    }
+
+    /**
+     * Get the last location from the location client
+     * @return
+     */
+    private Location getLocation() {
+        return locationClient != null && locationClient.isConnected() ? locationClient
+                .getLastLocation() : null;
+    }
+
+    /**
      * Set up the location client if the instance is null.
      */
     private void setUpLocationClientIfNeeded() {
@@ -194,6 +162,69 @@ public class VenueListActivity extends FragmentActivity implements
             locationClient = new LocationClient(this, this, // ConnectionCallbacks
                     this); // OnConnectionFailedListener
         }
+    }
+
+    /**
+     * Load the latest searched venues
+     */
+    private void loadLatestSearch() {
+        new BackgroundTask() {
+            List<Venue> venues;
+
+            @Override
+            public void work() {
+                venues = VenueManager.loadLastSearch();
+            }
+
+            @Override
+            public void done() {
+                pagerAdapter.updateVenues(venues);
+            }
+        };
+    }
+
+    /**
+     * Search for venues on the FS API and display the result into list view
+     * @param query
+     */
+    public void searchVenues(final Location location, final String query) {
+        setProgressBarIndeterminateVisibility(true);
+        new BackgroundTask() {
+            VenueSearchResult searchResult = null;
+
+            @Override
+            public void work() {
+                try {
+                    searchResult = VenueManager.search(VenueListActivity.this,
+                            location, query);
+                    VenueManager.saveVenues(searchResult.getVenues());
+                } catch (IOException e) {
+                    LogIt.e(this, e, e.getMessage());
+                }
+
+            }
+
+            @Override
+            public void done() {
+                if (searchResult != null) {
+                    pagerAdapter.updateVenues(searchResult.getVenues());
+                }
+                setProgressBarIndeterminateVisibility(false);
+            }
+        };
+    }
+
+    /**
+     * Checks the connectivity service for availability
+     * @return
+     */
+    public boolean isOnline() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+        if (netInfo != null && netInfo.isConnectedOrConnecting()) {
+            return true;
+        }
+        return false;
     }
 
 }

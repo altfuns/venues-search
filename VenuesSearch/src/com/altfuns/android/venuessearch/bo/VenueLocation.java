@@ -1,5 +1,7 @@
 package com.altfuns.android.venuessearch.bo;
 
+import com.google.android.gms.maps.model.LatLng;
+
 public class VenueLocation {
 
     protected double lat;
@@ -30,6 +32,10 @@ public class VenueLocation {
 
     public void setDistance(int distance) {
         this.distance = distance;
+    }
+
+    public LatLng getLatLng() {
+        return new LatLng(lat, lng);
     }
 
     @Override

@@ -10,7 +10,7 @@ import com.altfuns.android.venuessearch.bo.Venue;
 import com.altfuns.android.venuessearch.core.ListBaseAdapter;
 
 /**
- * List adapter for display the venues name and distance
+ * Adapter the show the name and the distance of venues
  * @author altfuns
  *
  */
@@ -53,8 +53,7 @@ public class VenueAdapter extends ListBaseAdapter<Venue> {
         if (item.getDistance() != null) {
             double distance = item.getDistance() < 1000 ? item.getDistance()
                     : item.getDistance() / 1000;
-            String measure = item.getDistance() < 1000 ? "m"
-                    : "km";
+            String measure = item.getDistance() < 1000 ? "m" : "km";
             holder.distance.setText(String.format("%s %s", distance, measure));
         }
 
