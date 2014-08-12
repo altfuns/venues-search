@@ -9,6 +9,11 @@ import android.widget.TextView;
 import com.altfuns.android.venuessearch.bo.Venue;
 import com.altfuns.android.venuessearch.core.ListBaseAdapter;
 
+/**
+ * List adapter for display the venues name and distance
+ * @author altfuns
+ *
+ */
 public class VenueAdapter extends ListBaseAdapter<Venue> {
 
     public VenueAdapter(Context context, List<Venue> items) {
@@ -45,11 +50,10 @@ public class VenueAdapter extends ListBaseAdapter<Venue> {
 
         holder.name.setText(item.getName());
 
-        if (item.getLocation() != null) {
-            double distance = item.getLocation().getDistance() < 1000 ? item
-                    .getLocation().getDistance() : item.getLocation()
-                    .getDistance() / 1000;
-            String measure = item.getLocation().getDistance() < 1000 ? "m"
+        if (item.getDistance() != null) {
+            double distance = item.getDistance() < 1000 ? item.getDistance()
+                    : item.getDistance() / 1000;
+            String measure = item.getDistance() < 1000 ? "m"
                     : "km";
             holder.distance.setText(String.format("%s %s", distance, measure));
         }

@@ -20,6 +20,7 @@ import com.altfuns.android.venuessearch.core.LogIt;
 import com.altfuns.android.venuessearch.core.RestClientHelper;
 import com.altfuns.android.venuessearch.dummy.DummyContent;
 import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.stmt.QueryBuilder;
 
 /**
  * A list fragment representing a list of Venues. This fragment also supports
@@ -276,6 +277,8 @@ public class VenueListFragment extends ListFragment {
             Dao<Venue, Long> dao = VenuesSearchApp.getInstance().getHelper()
                     .getDao();
             for (Venue venue : venues) {
+                // Load the distance field
+                venue.getDistance();
                 int id = dao.create(venue);
                 LogIt.d(this, "id:" + id);
             }
@@ -291,7 +294,10 @@ public class VenueListFragment extends ListFragment {
         try {
             Dao<Venue, Long> dao = VenuesSearchApp.getInstance().getHelper()
                     .getDao();
-            List<Venue> venues = dao.queryForAll();
+            QueryBuilder<Venue, Long> builder = dao.queryBuilder();
+            builder.orderBy("_id", false);
+            builder.limit(10L);
+            List<Venue> venues = builder.query();
             adapter.updateItems(venues);
             setListShown(true);
         } catch (SQLException e) {

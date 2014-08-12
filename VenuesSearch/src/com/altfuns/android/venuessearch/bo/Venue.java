@@ -15,7 +15,10 @@ public class Venue {
 
     @DatabaseField
     protected String name;
-    
+
+    @DatabaseField
+    protected Integer distance = null;
+
     protected VenueLocation location;
 
     /**
@@ -60,6 +63,17 @@ public class Venue {
 
     public void setLocation(VenueLocation location) {
         this.location = location;
+    }
+
+    public Integer getDistance() {
+        if (distance == null && location != null) {
+            this.distance = location.getDistance();
+        }
+        return distance;
+    }
+
+    public void setDistance(Integer distance) {
+        this.distance = distance;
     }
 
     @Override
